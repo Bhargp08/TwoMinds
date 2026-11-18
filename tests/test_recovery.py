@@ -77,6 +77,7 @@ def test_run_recovery_shapes_bounds_and_determinism():
         assert a["fit"][:, col].min() >= lo - 1e-9 and a["fit"][:, col].max() <= hi + 1e-9
 
 
+@pytest.mark.slow
 def test_pipeline_end_to_end_small(tmp_path):
     summary = recovery_pipeline(
         tmp_path,
@@ -112,6 +113,7 @@ def test_sample_theta_prior_options():
         sample_theta(rng, "nonsense")
 
 
+@pytest.mark.slow
 def test_pipeline_reports_wide_prior_when_asked(tmp_path):
     summary = recovery_pipeline(
         tmp_path,

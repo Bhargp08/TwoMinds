@@ -189,7 +189,7 @@ def _eval_at_random_point(model, seed):
         ("hybrid", True, "numba"),
         ("mf", False, "numba"),
         ("mb", False, "numba"),
-        ("hybrid", True, "scan"),
+        pytest.param("hybrid", True, "scan", marks=pytest.mark.slow),
     ],
 )
 def test_model_transforms_and_loglik_wiring(tiny, model, b1c, lik):
@@ -278,6 +278,7 @@ def test_fit_hier_smoke_structure(smoke_idata):
     assert {"max_rhat", "min_ess_bulk", "min_ess_tail", "divergences"} <= set(d)
 
 
+@pytest.mark.slow
 def test_fit_hier_mf_has_no_delta_w(tiny):
     idata = hier.fit_hier(tiny["datasets"], "mf", draws=10, tune=10, chains=1, cores=1, seed=0)
     assert "delta_w" not in idata.posterior
