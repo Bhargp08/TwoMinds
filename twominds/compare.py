@@ -9,8 +9,8 @@ for `az.compare`.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from collections.abc import Mapping
+from pathlib import Path
 
 import arviz as az
 import matplotlib
