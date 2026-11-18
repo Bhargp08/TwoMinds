@@ -4,9 +4,12 @@ Data
 ----
 `datasets` is a list over participants. Each entry is either a dict keyed by condition
 (``"no_pressure"`` / ``"time_pressure"`` as written by `io.load_session`, or 0 / 1) or a
-``(no_pressure, time_pressure)`` pair. Each condition is a session dict with the keys of
-`agents.simulate` / `io.load_session` (``a1, s2, a2, r``; missed stage 1: ``a1 = a2 = -1``;
-missed stage 2: ``a2 = -1``). Condition code c = 0 is no pressure, c = 1 is time pressure.
+``(no_pressure, time_pressure)`` pair. The condition-major layout
+``{"no_pressure": [session per participant], "time_pressure": [...]}`` (as built by
+scripts/run_all.py) is accepted too; list position is the participant.
+Each condition is a session dict with the keys of `agents.simulate` / `io.load_session`
+(``a1, s2, a2, r``; missed stage 1: ``a1 = a2 = -1``; missed stage 2: ``a2 = -1``).
+Condition code c = 0 is no pressure, c = 1 is time pressure.
 Sessions of different lengths are padded at the end with missed trials (a1 = a2 = -1), which
 contribute nothing to the likelihood and come after every real trial, so they change nothing.
 Exclusion flags (``excluded``) are ignored here: the caller decides who goes in.
@@ -57,6 +60,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
 
@@ -84,7 +88,7 @@ QUICK = {"draws": 300, "tune": 300, "chains": 2}
 
 
 def _condition_pair(entry):
-    if isinstance(entry, dict):
+    if isinstance(entry, Mapping):
         pair = []
         for c, name in enumerate(CONDITIONS):
             if name in entry:
@@ -99,9 +103,22 @@ def _condition_pair(entry):
     return list(entry)
 
 
+def _participant_major(datasets):
+    """Accept condition-major input too: {"no_pressure": [s_0, s_1, ...], "time_pressure": [...]}
+    (the layout scripts/run_all.py builds), with list position = participant."""
+    if not isinstance(datasets, Mapping):
+        return list(datasets)
+    pair = _condition_pair(datasets)
+    if isinstance(pair[0], Mapping):
+        raise ValueError("datasets must be a list of participants (or condition -> list)")
+    if len(pair[0]) != len(pair[1]):
+        raise ValueError("condition-major datasets need the same participants in both conditions")
+    return list(zip(pair[0], pair[1], strict=True))
+
+
 def stack_datasets(datasets) -> dict:
     """Stack datasets into (T, N, 2) int arrays a1, s2, a2, r (end-padded with missed trials)."""
-    pairs = [_condition_pair(e) for e in datasets]
+    pairs = [_condition_pair(e) for e in _participant_major(datasets)]
     n_part = len(pairs)
     n_t = max(len(d["a1"]) for pair in pairs for d in pair)
     out = {

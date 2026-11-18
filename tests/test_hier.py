@@ -66,7 +66,8 @@ def test_stack_datasets_shapes_padding_and_input_forms():
     assert np.all(st["a1"][-7:, :, 1] == -1) and np.all(st["a2"][-7:, :, 1] == -1)
     as_pairs = [(e["no_pressure"], e["time_pressure"]) for e in ds]
     as_int_keys = [{0: e["no_pressure"], 1: e["time_pressure"]} for e in ds]
-    for alt in (as_pairs, as_int_keys):
+    cond_major = {name: [e[name] for e in ds] for name in CONDS}
+    for alt in (as_pairs, as_int_keys, cond_major):
         st2 = hier.stack_datasets(alt)
         for k in ("a1", "s2", "a2", "r"):
             assert np.array_equal(st[k], st2[k])
