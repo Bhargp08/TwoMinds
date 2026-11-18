@@ -8,6 +8,8 @@ dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",
     "gymnasium>=0.29",
+    "statsmodels>=0.15.0",
+    "matplotlib>=3.10.9",
 ]
 
 [dependency-groups]
