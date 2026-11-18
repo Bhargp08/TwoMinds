@@ -10,6 +10,7 @@ dependencies = [
     "gymnasium>=0.29",
     "statsmodels>=0.15.0",
     "matplotlib>=3.10.9",
+    "arviz>=0.23.4",
 ]
 
 [dependency-groups]
