@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-from twominds.fit_mle import BOUNDS, MODELS, fit_mle, fit_models
 
 from twominds.agents import _replay, loglik, simulate
+from twominds.fit_mle import BOUNDS, MODELS, fit_mle, fit_models
 
 # Conventions under test
 # - fit_mle(data, n_starts=20, rng=None, model="hybrid") -> dict with
