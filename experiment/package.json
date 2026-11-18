@@ -1,0 +1,26 @@
+{
+  "name": "twominds-experiment",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@jspsych/extension-pipe": "0.2.0",
+    "@jspsych/plugin-fullscreen": "2.1.0",
+    "@jspsych/plugin-html-button-response": "2.1.0",
+    "@jspsych/plugin-html-keyboard-response": "2.2.0",
+    "jspsych": "8.4.0"
+  },
+  "devDependencies": {
+    "vite": "5.4.21",
+    "vitest": "2.1.9"
+  }
+}
