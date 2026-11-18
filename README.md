@@ -16,3 +16,24 @@ uv run pytest -q
 ```
 
 Tests marked `@pytest.mark.slow` are skipped by default; run them with `uv run pytest -m slow`.
+
+### Experiment (jsPsych / TM-06)
+
+```bash
+cd experiment
+npm ci
+npm test
+npm run smoke   # short mock-save session → tests/fixtures/smoke_session.csv
+npm run dev     # local task; mock-save when VITE_DATAPIPE_EXPERIMENT_ID is unset
+```
+
+Reward schedules are exported from Python (`experiment/scripts/export_schedules.py`) and shipped as fixed JSON — JS does not regenerate numpy RNG draws.
+
+### Human data loader (TM-07)
+
+`twominds.io.load_session(path)` turns a mock-save / DataPipe CSV into `{condition: data}` for `twominds.agents.loglik`. Missed trials are masked as in TM-02 (`a1 = -1` / `a2 = -1`).
+
+**Exclusion rules** (flagged on each condition via `excluded` / `exclusion_reasons`; never dropped silently):
+
+1. More than 20% of trials in the block are missed (stage 1 or stage 2).
+2. Among answered stage-2 trials, the higher-reward option is chosen ≤ 55% of the time.
