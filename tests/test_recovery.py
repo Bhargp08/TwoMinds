@@ -2,6 +2,8 @@ import json
 
 import numpy as np
 import pytest
+
+from twominds.fit_mle import BOUNDS
 from twominds.recovery import (
     PARAM_NAMES,
     confusion_matrix,
@@ -11,12 +13,10 @@ from twominds.recovery import (
     summarize_recovery,
 )
 
-from twominds.fit_mle import BOUNDS
-
 # Conventions under test
 # - sample_theta(rng) -> 7-vector (alpha1, alpha2, lam, beta1, beta2, w, p) from the spec priors.
 # - run_recovery(n_subjects, n_trials, seed, n_starts, n_jobs) -> {"true": (n,7), "fit": (n,7)}.
-# - summarize_recovery(true, fit) -> {"r": {param: pearson r}, "fit_corr": 7x7 matrix of fitted values}.
+# - summarize_recovery(true, fit) -> {"r": {param: pearson r}, "fit_corr": 7x7 fitted-value matrix}.
 # - confusion_matrix(generating, bics) -> (m, m) counts; rows = generating model index,
 #   columns = model with the lowest BIC; bics is (n, m).
 # - recovery_pipeline(out_dir, n_subjects, trial_counts, n_starts, n_jobs, seed, gate_trials,
@@ -83,7 +83,7 @@ def test_pipeline_end_to_end_small(tmp_path):
         n_subjects=10,
         trial_counts=(60,),
         n_starts=1,
-        n_jobs=2,
+        n_jobs=1,
         seed=0,
         gate_trials=60,
         n_model_subjects=3,
