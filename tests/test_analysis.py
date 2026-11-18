@@ -4,9 +4,9 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from twominds.analysis import stay_effects, stay_logit, stay_table
 
 from twominds.agents import simulate
+from twominds.analysis import stay_effects, stay_logit, stay_table
 
 # Conventions under test
 # - stay_table(data) -> {"stay": (2, 2) array, "n": (2, 2) array}, indexed
