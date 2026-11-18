@@ -14,10 +14,22 @@ def main():
     ap.add_argument("--n-jobs", type=int, default=None)
     args = ap.parse_args()
     summary = recovery_pipeline(
-        args.out, args.n_subjects, n_starts=args.n_starts, n_jobs=args.n_jobs, seed=args.seed
+        args.out,
+        args.n_subjects,
+        n_starts=args.n_starts,
+        n_jobs=args.n_jobs,
+        seed=args.seed,
+        include_wide_prior=True,
     )
-    print({k: round(v, 3) for k, v in summary["trials"]["200"]["r"].items()})
-    print("gate passed:", summary["gate"]["passed"])
+    for label, trials in (
+        ("realistic", summary["trials"]),
+        ("wide", summary["wide_prior"]["trials"]),
+    ):
+        for n, v in trials.items():
+            print(label, n, {k: round(x, 2) for k, x in v["r"].items()})
+    print("confusion (realistic):", summary["model_recovery"]["confusion"])
+    print("confusion (wide):", summary["wide_prior"]["model_recovery"]["confusion"])
+    print("gate:", summary["gate"])
 
 
 if __name__ == "__main__":

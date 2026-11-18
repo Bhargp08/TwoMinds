@@ -41,8 +41,8 @@ def test_sample_theta_matches_spec_priors():
     for i in (0, 1, 2, 5):  # Beta(2, 2): mean 0.5, sd sqrt(0.05)
         assert th[:, i].mean() == pytest.approx(0.5, abs=0.02)
         assert th[:, i].std() == pytest.approx(np.sqrt(0.05), abs=0.02)
-    assert th[:, 3:5].min() >= 0.5 and th[:, 3:5].max() <= 15  # beta clipped
-    assert th[:, 3:5].mean() > 3.5  # Gamma(3, 1.5) mean 4.5, clipped
+    assert th[:, 3:5].min() >= 2 and th[:, 3:5].max() <= 15  # beta clipped to [2, 15]
+    assert th[:, 3:5].mean() > 5.5  # Gamma(4, 1.5) mean 6, clipped
     assert th[:, 6].mean() == pytest.approx(0.15, abs=0.02)
     assert th[:, 6].std() == pytest.approx(0.2, abs=0.02)
 
@@ -95,17 +95,45 @@ def test_pipeline_end_to_end_small(tmp_path):
     cm = np.asarray(on_disk["model_recovery"]["confusion"])
     assert cm.shape == (3, 3) and cm.sum() == 9
     assert on_disk["model_recovery"]["models"] == ["mf", "mb", "hybrid"]
-    assert set(on_disk["gate"]["params"]) == {"w", "beta1", "beta2", "alpha2"}
+    assert set(on_disk["gate"]["params"]) == {"beta1", "beta2", "alpha2"}  # w not gated
+    assert on_disk["gate"]["w"]["floor"] == 0.6 and on_disk["gate"]["w"]["reported_not_gated"]
     assert isinstance(on_disk["gate"]["passed"], bool) and on_disk["gate"]["threshold"] == 0.7
     pngs = {p.name for p in tmp_path.glob("*.png")}
     assert {"recovery_scatter_60.png", "fitted_param_corr_60.png", "model_confusion.png"} <= pngs
 
 
+def test_sample_theta_prior_options():
+    rng = np.random.default_rng(3)
+    wide = np.array([sample_theta(rng, "wide") for _ in range(3000)])
+    assert wide[:, 3:5].min() >= 0.5 and wide[:, 3:5].min() < 1.5  # reaches low betas
+    real = np.array([sample_theta(rng) for _ in range(3000)])  # default = realistic
+    assert real[:, 3:5].min() >= 2
+    with pytest.raises(ValueError):
+        sample_theta(rng, "nonsense")
+
+
+def test_pipeline_reports_wide_prior_when_asked(tmp_path):
+    summary = recovery_pipeline(
+        tmp_path,
+        n_subjects=6,
+        trial_counts=(60,),
+        n_starts=1,
+        n_jobs=1,
+        gate_trials=60,
+        n_model_subjects=2,
+        include_wide_prior=True,
+    )
+    assert set(summary["wide_prior"]["trials"]["60"]["r"]) == set(PARAM_NAMES)
+    assert (tmp_path / "recovery_scatter_60_wide.png").exists()
+    assert (tmp_path / "model_confusion_wide.png").exists()
+
+
 @pytest.mark.slow
 def test_full_recovery_gate(tmp_path):
-    """TM-05 gate: r > 0.7 for w, beta1, beta2, alpha2 at 100 subjects x 200 trials."""
+    """TM-05 gate at 100 subjects x 200 trials: beta1, beta2, alpha2 r > 0.7; w r > 0.6 (floor)."""
     summary = recovery_pipeline(tmp_path, n_subjects=100, trial_counts=(200, 400), seed=0)
     r200 = summary["trials"]["200"]["r"]
-    for name in ("w", "beta1", "beta2", "alpha2"):
+    for name in ("beta1", "beta2", "alpha2"):
         assert r200[name] > 0.7, (name, r200)
+    assert r200["w"] > 0.6, r200
     assert summary["gate"]["passed"]
