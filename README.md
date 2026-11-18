@@ -16,3 +16,15 @@ uv run pytest -q
 ```
 
 Tests marked `@pytest.mark.slow` are skipped by default; run them with `uv run pytest -m slow`.
+
+### Experiment (jsPsych / TM-06)
+
+```bash
+cd experiment
+npm ci
+npm test
+npm run smoke   # short mock-save session → tests/fixtures/smoke_session.csv
+npm run dev     # local task; mock-save when VITE_DATAPIPE_EXPERIMENT_ID is unset
+```
+
+Reward schedules are exported from Python (`experiment/scripts/export_schedules.py`) and shipped as fixed JSON — JS does not regenerate numpy RNG draws.
