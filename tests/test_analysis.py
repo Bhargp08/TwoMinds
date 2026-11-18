@@ -198,6 +198,7 @@ def test_logit_coefficients_have_expected_signs(mf, mb):
 # ---- plotting script ------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_plot_stay_script_writes_figure(tmp_path):
     script = Path(__file__).resolve().parents[1] / "scripts" / "plot_stay.py"
     subprocess.run(

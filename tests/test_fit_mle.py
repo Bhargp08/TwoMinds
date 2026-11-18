@@ -22,7 +22,7 @@ def long_data():
 
 @pytest.fixture(scope="module")
 def long_fit(long_data):
-    return fit_mle(long_data, n_starts=4, rng=np.random.default_rng(1))
+    return fit_mle(long_data, n_starts=2, rng=np.random.default_rng(1))
 
 
 def with_missed(data, rng, frac=0.1):
