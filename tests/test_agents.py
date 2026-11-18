@@ -19,8 +19,8 @@ missed (s2 and r on that trial are ignored).
 
 import numpy as np
 import pytest
-from twominds.agents import loglik, simulate, trace
 
+from twominds.agents import loglik, simulate, trace
 from twominds.env import make_reward_schedule
 
 LOWER = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.0])
