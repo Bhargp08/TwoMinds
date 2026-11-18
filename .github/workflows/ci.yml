@@ -11,3 +11,19 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run pytest -q
+
+  npm-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: experiment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: experiment/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run smoke
