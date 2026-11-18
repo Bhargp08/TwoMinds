@@ -10,6 +10,8 @@ log-prob counts, no update; the stage-1 choice still counts as the previous choi
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from twominds.env import make_reward_schedule
@@ -98,9 +100,57 @@ def _replay(theta, data, record=False):
     return float(ll), tr
 
 
+def _log_choice(beta, z_chosen, z_other):
+    """log softmax probability of the chosen option among two (stable)."""
+    d = beta * (z_chosen - z_other)
+    return -(max(-d, 0.0) + math.log1p(math.exp(-abs(d))))
+
+
 def loglik(theta, data) -> float:
-    """Sum of log P(a1) + log P(a2) over answered choices."""
-    return _replay(theta, data)[0]
+    """Sum of log P(a1) + log P(a2) over answered choices.
+
+    Scalar-math fast path (the fitters call this thousands of times); `_replay` is the
+    readable reference and the tests check the two agree.
+    """
+    alpha1, alpha2, lam, beta1, beta2, w, p = _unpack(theta)
+    a1s = np.asarray(data["a1"]).tolist()
+    s2s = np.asarray(data["s2"]).tolist()
+    a2s = np.asarray(data["a2"]).tolist()
+    rs = np.asarray(data["r"], dtype=float).tolist()
+    pc, pr = P_COMMON, 1 - P_COMMON
+    qmf0 = qmf1 = 0.0
+    q = [[0.0, 0.0], [0.0, 0.0]]  # q[s2 - 1][a2]
+    prev = -1
+    ll = 0.0
+    for a1, s2, a2, r in zip(a1s, s2s, a2s, rs, strict=True):
+        if a1 < 0:
+            prev = -1
+            continue
+        m1 = max(q[0])
+        m2 = max(q[1])
+        z0 = w * (pc * m1 + pr * m2) + (1 - w) * qmf0
+        z1 = w * (pr * m1 + pc * m2) + (1 - w) * qmf1
+        if prev == 0:
+            z0 += p
+        elif prev == 1:
+            z1 += p
+        ll += _log_choice(beta1, z1, z0) if a1 == 1 else _log_choice(beta1, z0, z1)
+        prev = a1
+        if a2 < 0:
+            continue
+        row = q[s2 - 1]
+        ll += _log_choice(beta2, row[a2], row[1 - a2])
+        qa = row[a2]
+        qmf = qmf1 if a1 == 1 else qmf0
+        d1 = qa - qmf
+        d2 = r - qa
+        qmf += alpha1 * d1 + alpha1 * lam * d2
+        row[a2] = qa + alpha2 * d2
+        if a1 == 1:
+            qmf1 = qmf
+        else:
+            qmf0 = qmf
+    return float(ll)
 
 
 def trace(theta, data) -> dict:
