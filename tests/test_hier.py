@@ -16,6 +16,7 @@ Conventions under test
 
 import arviz as az
 import numpy as np
+import pytensor
 import pytest
 
 from twominds import hier
@@ -103,6 +104,36 @@ def test_batch_loglik_all_missed_is_zero():
     assert np.all(hier.batch_loglik(theta, ds) == 0.0)
 
 
+def _kernel_inputs(ds):
+    st = hier.stack_datasets(ds)
+    n_t = st["a1"].shape[0]
+    return [np.ascontiguousarray(st[k].reshape(n_t, -1), dtype=np.int64)
+            for k in ("a1", "s2", "a2", "r")]
+
+
+def test_numba_kernel_value_matches_agents_loglik():
+    theta, ds = _random_datasets(n_part=4, n_trials=60, seed=7, unequal=True)
+    ll, _ = hier._ll_grad_kernel(theta.reshape(-1, 7), *_kernel_inputs(ds))
+    for i in range(4):
+        for c, name in enumerate(CONDS):
+            assert abs(ll[2 * i + c] - loglik(theta[i, c], ds[i][name])) < 1e-6
+
+
+def test_numba_kernel_gradient_matches_finite_differences():
+    theta, ds = _random_datasets(n_part=3, n_trials=50, seed=8)
+    theta[:, :, 5] = np.clip(theta[:, :, 5], 0.05, 0.95)  # interior w for central differences
+    th = theta.reshape(-1, 7)
+    data = _kernel_inputs(ds)
+    _, grad = hier._ll_grad_kernel(th, *data)
+    h = 1e-6
+    for k in range(7):
+        up, dn = th.copy(), th.copy()
+        up[:, k] += h
+        dn[:, k] -= h
+        fd = (hier._ll_grad_kernel(up, *data)[0] - hier._ll_grad_kernel(dn, *data)[0]) / (2 * h)
+        assert np.allclose(grad[:, k], fd, rtol=1e-5, atol=1e-5), k
+
+
 @pytest.fixture(scope="module")
 def tiny():
     return hier.simulate_hier_dataset(3, 40, delta_w=-0.8, seed=11)
@@ -123,21 +154,46 @@ def test_build_model_variables_per_variant(tiny):
         hier.build_model(ds, "nope")
 
 
+@pytest.mark.slow  # ~30 s of scan-gradient graph rewriting
+def test_model_gradient_numba_matches_scan(tiny):
+    ds = tiny["datasets"]
+    grads = []
+    for lik in ("numba", "scan"):
+        m = hier.build_model(ds, likelihood=lik)
+        f = m.logp_dlogp_function(ravel_inputs=True)
+        f.set_extra_values({})
+        rng = np.random.default_rng(3)
+        x = np.concatenate([np.ravel(v) for v in m.initial_point().values()])
+        x = x + rng.normal(0, 0.5, size=x.shape)
+        grads.append(f(x))
+    assert abs(grads[0][0] - grads[1][0]) < 1e-6
+    assert np.allclose(grads[0][1], grads[1][1], atol=1e-6)
+
+
 def _eval_at_random_point(model, seed):
     rng = np.random.default_rng(seed)
     point = model.initial_point()
     point = {k: v + rng.normal(0, 0.5, size=np.shape(v)) for k, v in point.items()}
     names = ["alpha1", "alpha2", "lam", "beta1", "beta2", "w", "p", "ll_pc"]
-    fn = model.compile_fn([model[n] for n in names], inputs=model.value_vars, point_fn=True)
-    return point, dict(zip(names, fn(point), strict=True))
+    outs = model.replace_rvs_by_values([model[n] for n in names])
+    fn = pytensor.function(model.value_vars, outs, on_unused_input="ignore")
+    vals = fn(*(point[v.name] for v in model.value_vars))
+    return point, dict(zip(names, vals, strict=True))
 
 
 @pytest.mark.parametrize(
-    "model,b1c", [("hybrid", False), ("hybrid", True), ("mf", False), ("mb", False)]
+    "model,b1c,lik",
+    [
+        ("hybrid", False, "numba"),
+        ("hybrid", True, "numba"),
+        ("mf", False, "numba"),
+        ("mb", False, "numba"),
+        ("hybrid", True, "scan"),
+    ],
 )
-def test_model_transforms_and_loglik_wiring(tiny, model, b1c):
+def test_model_transforms_and_loglik_wiring(tiny, model, b1c, lik):
     ds = tiny["datasets"]
-    m = hier.build_model(ds, model, beta1_by_condition=b1c)
+    m = hier.build_model(ds, model, beta1_by_condition=b1c, likelihood=lik)
     point, v = _eval_at_random_point(m, seed=2)
     n = len(ds)
     for p in ("alpha1", "alpha2", "lam"):
