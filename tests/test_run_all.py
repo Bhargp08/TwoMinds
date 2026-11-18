@@ -9,7 +9,6 @@ from pathlib import Path
 
 import arviz as az
 import numpy as np
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 WRITEUP = ROOT / "docs" / "writeup.md"
@@ -86,9 +85,30 @@ def test_render_writeup_fills_all_placeholders(tmp_path: Path):
     mod = _load_run_all()
     summary = {
         "model_compare": {
-            "hybrid": {"elpd_loo": -10.5, "se": 1.2, "rank": 0, "elpd_diff": 0.0, "dse": 0.0, "weight": 0.7},
-            "mf": {"elpd_loo": -12.0, "se": 1.1, "rank": 2, "elpd_diff": 1.5, "dse": 0.4, "weight": 0.1},
-            "mb": {"elpd_loo": -11.0, "se": 1.0, "rank": 1, "elpd_diff": 0.5, "dse": 0.3, "weight": 0.2},
+            "hybrid": {
+                "elpd_loo": -10.5,
+                "se": 1.2,
+                "rank": 0,
+                "elpd_diff": 0.0,
+                "dse": 0.0,
+                "weight": 0.7,
+            },
+            "mf": {
+                "elpd_loo": -12.0,
+                "se": 1.1,
+                "rank": 2,
+                "elpd_diff": 1.5,
+                "dse": 0.4,
+                "weight": 0.1,
+            },
+            "mb": {
+                "elpd_loo": -11.0,
+                "se": 1.0,
+                "rank": 1,
+                "elpd_diff": 0.5,
+                "dse": 0.3,
+                "weight": 0.2,
+            },
         },
         "delta_w": {
             "mean": -0.81,

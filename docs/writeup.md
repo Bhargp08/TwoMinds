@@ -2,7 +2,7 @@
 
 Student project with volunteer participants; **not IRB-approved research**.
 
-Numbers in `{{double_braces}}` are filled by `scripts/run_all.py` from JSON outputs — do not hand-type results.
+Numbers below are filled by `scripts/run_all.py` from JSON outputs — do not hand-type results.
 
 ## Question
 
