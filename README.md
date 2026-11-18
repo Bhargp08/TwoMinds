@@ -28,3 +28,12 @@ npm run dev     # local task; mock-save when VITE_DATAPIPE_EXPERIMENT_ID is unse
 ```
 
 Reward schedules are exported from Python (`experiment/scripts/export_schedules.py`) and shipped as fixed JSON — JS does not regenerate numpy RNG draws.
+
+### Human data loader (TM-07)
+
+`twominds.io.load_session(path)` turns a mock-save / DataPipe CSV into `{condition: data}` for `twominds.agents.loglik`. Missed trials are masked as in TM-02 (`a1 = -1` / `a2 = -1`).
+
+**Exclusion rules** (flagged on each condition via `excluded` / `exclusion_reasons`; never dropped silently):
+
+1. More than 20% of trials in the block are missed (stage 1 or stage 2).
+2. Among answered stage-2 trials, the higher-reward option is chosen ≤ 55% of the time.
